@@ -23,6 +23,11 @@ export default {
       return env.ASSETS ? env.ASSETS.fetch(request) : new Response('No encontrado', { status: 404 });
     }
 
+    // Diagnóstico rápido: qué configuración ve el Worker (sin mostrar valores).
+    if (parts[1] === 'health') {
+      return Response.json({ mapillaryToken: !!env.MAPILLARY_TOKEN, workersAI: !!env.AI });
+    }
+
     if (parts[1] === 'rooms' && parts.length === 2 && request.method === 'POST') {
       let body: CreateRoomRequest;
       try {
