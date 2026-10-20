@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "multijuegos",
+  "name": "multihgames",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-09-01",
   "assets": {
@@ -13,9 +13,5 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "ai": { "binding": "AI" },
-  "vars": {
-    // Token de cliente de Mapillary (es público: lo usa el navegador). Crealo en https://www.mapillary.com/dashboard/developers
-    "MAPILLARY_TOKEN": ""
-  },
   "observability": { "enabled": true }
 }
