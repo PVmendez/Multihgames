@@ -263,3 +263,25 @@ describe('penales', () => {
     expect(m.tandas.length).toBe(1);
   });
 });
+
+describe('personajes especiales', () => {
+  it('reconoce el nombre sin importar mayúsculas, tildes ni espacios', async () => {
+    const { specialForName, nameHash } = await import('../src/shared/specials');
+    expect(specialForName('Manuel Perera')).toBe('manuel');
+    expect(specialForName('  manuel   PERERA ')).toBe('manuel');
+    expect(specialForName('Facundo Centurión')).toBe('facundo');
+    expect(specialForName('facundo centurion')).toBe('facundo');
+    expect(specialForName('Manuel')).toBeUndefined();
+    expect(specialForName('Pablo')).toBeUndefined();
+    // el script de npm run hash calcula lo mismo
+    const script = await import('../scripts/hash-name.mjs');
+    expect(script.nameHash('Facundo Centurión')).toBe(nameHash('Facundo Centurión'));
+  });
+
+  it('el código no tiene los nombres en texto', async () => {
+    const fs = await import('node:fs');
+    const src = fs.readFileSync(new URL('../src/shared/specials.ts', import.meta.url), 'utf8').toLowerCase();
+    expect(src).not.toContain('perera');
+    expect(src).not.toContain('centuri');
+  });
+});

@@ -7,7 +7,8 @@
     "build": "tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json && vite build",
     "test": "vitest run",
     "deploy": "vite build && wrangler deploy",
-    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json"
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json",
+    "hash": "node scripts/hash-name.mjs"
   },
   "dependencies": {
     "blobatar": "^2.7.0",

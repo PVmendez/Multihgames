@@ -132,7 +132,7 @@ function PlayerScreen({ msg, send, onEdit }: { msg: PlayerMessage; send: ReturnT
       <>
         <Header msg={msg} onEdit={onEdit} />
         <div className="stack fade-in" style={{ alignItems: 'center', textAlign: 'center', marginTop: 20 }}>
-          <Avatar avatar={me.avatar} size={170} title={me.name} />
+          <Avatar avatar={me.avatar} size={170} title={me.name} body />
           <h1 className="display h2">¡Anotado, {me.name}!</h1>
           <p className="muted" style={{ margin: 0 }}>
             Mirá la pantalla grande. Cuando el admin arranque, acá vas a jugar.
@@ -189,7 +189,7 @@ function PlayerScreen({ msg, send, onEdit }: { msg: PlayerMessage; send: ReturnT
               <Crown size={90} filled />
             </span>
           )}
-          <Avatar avatar={{ ...me.avatar, expression: champ ? 'happy' : me.avatar.expression }} size={180} />
+          <Avatar avatar={{ ...me.avatar, expression: champ ? 'happy' : me.avatar.expression }} size={180} body />
           <h1 className="display h1">{champ ? '¡Campeón!' : `Saliste ${myPlace}°`}</h1>
           <p className="big" style={{ margin: 0 }}>
             {myTotal} puntos

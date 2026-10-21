@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PublicPlayer } from '../../shared/types';
 import { Avatar, ChalkCircle, Countdown, Crown } from '../components/chalk';
 import { useWhenTimeUp, type HostProps, type PlayProps } from './common';
@@ -52,51 +52,268 @@ interface PlayView {
 }
 
 const ZONES = ['Izquierda', 'Centro', 'Derecha'];
-const ZX = [62, 150, 238];
+// ---------- Animación del remate ----------
+// Escena en unidades de 400×300: arco al fondo, pateador adelante. Los personajes son
+// los avatares de cada jugador (blob o personaje especial con cuerpo entero).
 
-// ---------- Dibujo del arco en tiza ----------
+const GOAL_X = [105, 200, 295]; // centro de cada zona del arco
+const SHOT_MS = 2600; // lo que dura cada remate en pantalla
 
-/** Un remate: dónde fue la pelota y hacia dónde se tiró el arquero. */
-export function Shot({ kick, dive, goal, width = 220, label }: { kick: number; dive: number; goal: boolean; width?: number; label?: string }) {
-  const bx = ZX[kick];
-  const kx = ZX[dive];
-  const lean = dive === 0 ? -28 : dive === 2 ? 28 : 0;
+type AvatarLike = PublicPlayer['avatar'];
+
+function Ball({ size }: { size: number }) {
   return (
-    <svg role="img" aria-label={label ?? `Pateó a la ${ZONES[kick].toLowerCase()}, el arquero se tiró a la ${ZONES[dive].toLowerCase()}: ${goal ? 'gol' : 'atajó'}`} width={width} viewBox="0 0 300 160">
-      {/* red */}
-      <path d="M30 22 H270 M30 52 H270 M30 82 H270 M30 112 H270 M70 22 V140 M110 22 V140 M150 22 V140 M190 22 V140 M230 22 V140" stroke="#edebe3" strokeWidth="1" opacity="0.18" />
-      {/* arco */}
-      <path d="M22 146 L22 18 L278 18 L278 146" stroke="#edebe3" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4 148 Q150 144 296 149" stroke="#edebe3" strokeWidth="2.5" fill="none" opacity="0.6" />
-      {/* arquero */}
-      <g transform={`translate(${kx} 92) rotate(${lean})`} stroke="#9fd0e8" strokeWidth="4" fill="none" strokeLinecap="round">
-        <circle cx="0" cy="-34" r="10" />
-        <path d="M0 -24 L0 14 M0 -14 L-26 -30 M0 -14 L26 -30 M0 14 L-14 46 M0 14 L14 46" />
-      </g>
-      {/* pelota */}
-      <g transform={`translate(${bx} ${goal ? 58 : 66})`}>
-        <circle r="13" fill="#f3d36b" />
-        <path d="M-6 -5 L0 -9 L6 -5 L4 2 L-4 2 Z" fill="#22302a" />
-      </g>
+    <svg aria-hidden="true" width={size} height={size} viewBox="-15 -15 30 30" style={{ animation: 'pen-ball-spin 0.6s linear 0.7s 1 both' }}>
+      <circle r="13" fill="#f4f1e8" stroke="#0e1612" strokeWidth="1.5" />
+      <path d="M-5 -4 L0 -8 L5 -4 L3 2 L-3 2 Z" fill="#1e1e1e" />
+      <path d="M-11 4 L-6 6 M11 4 L6 6 M0 13 L0 8" stroke="#1e1e1e" strokeWidth="1.6" />
     </svg>
   );
 }
 
-function ShotRow({ who, keeper, t, kickerSide, players, width = 180 }: { who: string; keeper: string; t: Tanda; kickerSide: 'a' | 'b'; players: Record<string, PublicPlayer>; width?: number }) {
-  const kick = t[kickerSide].kick;
-  const dive = t[kickerSide === 'a' ? 'b' : 'a'].dive;
-  const goal = kickerSide === 'a' ? t.aGoal : t.bGoal;
+export function PenaltyScene({
+  kicker,
+  keeper,
+  kick,
+  dive,
+  goal,
+  width = 360,
+  instant,
+  keeperName,
+  label
+}: {
+  kicker: AvatarLike;
+  keeper: AvatarLike;
+  kick: number;
+  dive: number;
+  goal: boolean;
+  width?: number;
+  instant?: boolean;
+  keeperName?: string;
+  label?: string;
+}) {
+  const s = width / 400;
+  const u = (n: number) => n * s;
+  const bx = GOAL_X[kick] - 200;
+  const by = 92 - 250;
+  const reboundX = kick === 1 ? 30 : kick === 0 ? -150 : 150;
+  const reboundY = kick === 1 ? 215 - 250 : 175 - 250;
+  const dx = GOAL_X[dive] - 200;
+  const rot = dive === 0 ? -78 : dive === 2 ? 78 : 0;
+  // Tamaños: los personajes especiales son altos (cuerpo entero), los blobs son redondos.
+  const keeperSize = keeper.special ? u(115) / 1.8 : u(74);
+  const kickerSize = kicker.special ? u(140) / 1.8 : u(86);
+  const vars = { '--s': s, '--dx': `${u(dx)}px`, '--rot': `${rot}deg`, '--bx': `${u(bx)}px`, '--by': `${u(by)}px`, '--rx': `${u(reboundX)}px`, '--ry': `${u(reboundY)}px`, '--nx': `${u(kick === 0 ? -5 : kick === 2 ? 5 : 0)}px` } as React.CSSProperties;
+
   return (
-    <div className="stack" style={{ gap: 2, alignItems: 'center' }}>
-      <Shot kick={kick} dive={dive} goal={goal} width={width} />
-      <span style={{ fontSize: width < 170 ? 15 : 18, textAlign: 'center' }}>
-        <b>{players[who]?.name}</b> → <span className={goal ? 'yellow' : 'pink'} style={{ fontWeight: 700 }}>{goal ? '¡GOL!' : `atajó ${players[keeper]?.name}`}</span>
-      </span>
+    <div
+      className={`pen-scene${instant ? ' pen-instant' : ''}`}
+      style={{ width, height: u(300), ...vars }}
+      role="img"
+      aria-label={label ?? `Pateó a la ${ZONES[kick].toLowerCase()}, el arquero se tiró a la ${ZONES[dive].toLowerCase()}: ${goal ? 'gol' : 'atajó'}`}
+    >
+      {/* arco y red en tiza */}
+      <svg aria-hidden="true" width={width} height={u(300)} viewBox="0 0 400 300" style={{ left: 0, top: 0 }}>
+        <g style={goal ? { animation: 'pen-net 0.45s ease-out 1.25s 2' } : undefined}>
+          <path d="M60 40 H340 M60 68 H340 M60 96 H340 M60 124 H340 M95 40 V152 M130 40 V152 M165 40 V152 M200 40 V152 M235 40 V152 M270 40 V152 M305 40 V152" stroke="#edebe3" strokeWidth="1" opacity="0.2" />
+        </g>
+        <path d="M58 154 L58 38 L342 38 L342 154" stroke="#edebe3" strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M0 156 Q200 150 400 157" stroke="#edebe3" strokeWidth="2.5" fill="none" opacity="0.55" />
+        <path d="M120 156 L80 228 L320 228 L280 156" stroke="#edebe3" strokeWidth="2" fill="none" opacity="0.25" />
+        <ellipse cx="200" cy="250" rx="5" ry="2.5" fill="#edebe3" opacity="0.6" />
+      </svg>
+
+      {/* arquero: se balancea y después se tira */}
+      <div
+        className="pen-anchor"
+        style={{
+          left: u(200) - keeperSize / 2,
+          top: u(154) - (keeper.special ? keeperSize * 1.8 : keeperSize),
+          animation: `pen-sway 0.7s ease-in-out 0s 1, pen-dive 0.5s cubic-bezier(.2,.8,.3,1) 0.72s 1 forwards`
+        }}
+      >
+        <Avatar avatar={{ ...keeper, expression: goal ? keeper.expression : 'happy' }} size={keeperSize} body />
+      </div>
+
+      {/* pelota */}
+      <div
+        className="pen-ball"
+        style={{
+          left: u(200) - u(13),
+          top: u(250) - u(13),
+          zIndex: 3,
+          animation: goal ? 'pen-ball-goal 0.55s ease-out 0.7s 1 forwards' : 'pen-ball-save 0.9s ease-out 0.7s 1 forwards'
+        }}
+      >
+        <Ball size={u(26)} />
+      </div>
+
+      {/* pateador: carrera y remate */}
+      <div
+        className="pen-anchor"
+        style={{
+          left: u(200) - kickerSize / 2,
+          top: u(296) - (kicker.special ? kickerSize * 1.8 : kickerSize),
+          zIndex: 2,
+          animation: 'pen-kicker 1s linear 0s 1 both'
+        }}
+      >
+        <Avatar avatar={kicker} size={kickerSize} body />
+      </div>
+
+      {/* resultado */}
+      <div className="pen-result" style={{ top: u(58), fontSize: u(goal ? 64 : 46), color: goal ? 'var(--yellow)' : 'var(--pink)', zIndex: 4, animationDelay: '1.3s' }}>
+        {goal ? '¡GOOOL!' : keeperName ? `¡Atajó ${keeperName}!` : '¡ATAJÓ!'}
+      </div>
     </div>
   );
 }
 
+/**
+ * Repite la última tanda: primero patea A (ataja B) y después patea B (ataja A).
+ * Cada resultado se muestra recién cuando termina su animación, y al final avisa con onDone.
+ */
+function TandaReplay({ t, a, b, players, width, onDone }: { t: Tanda; a: string; b: string; players: Record<string, PublicPlayer>; width: number; onDone?: () => void }) {
+  const [step, setStep] = useState(0); // remate que se está mostrando
+  const [shown, setShown] = useState(0); // cuántos resultados ya se ven
+  const done = useRef(onDone);
+  done.current = onDone;
+  useEffect(() => {
+    const ids = [
+      window.setTimeout(() => setShown(1), 1500),
+      window.setTimeout(() => setStep(1), SHOT_MS),
+      window.setTimeout(() => {
+        setShown(2);
+        done.current?.();
+      }, SHOT_MS + 1500)
+    ];
+    return () => ids.forEach((id) => window.clearTimeout(id));
+  }, []);
+  const pa = players[a];
+  const pb = players[b];
+  if (!pa || !pb) return null;
+  const first = step === 0;
+  const kicker = first ? pa : pb;
+  const keeper = first ? pb : pa;
+  const kick = first ? t.a.kick : t.b.kick;
+  const dive = first ? t.b.dive : t.a.dive;
+  const goal = first ? t.aGoal : t.bGoal;
+  const res = (ok: boolean, visible: boolean) =>
+    visible ? <b className={ok ? 'yellow' : 'pink'}>{ok ? 'gol' : 'atajada'}</b> : <b className="muted">…</b>;
+  return (
+    <div className="stack" style={{ gap: 4, alignItems: 'center' }}>
+      <span style={{ fontSize: 17, textAlign: 'center' }}>
+        Patea <b>{kicker.name}</b> · ataja <b>{keeper.name}</b>
+      </span>
+      <PenaltyScene key={step} kicker={kicker.avatar} keeper={keeper.avatar} kick={kick} dive={dive} goal={goal} width={width} keeperName={keeper.name} />
+      <div className="row wrap" style={{ gap: 14, fontSize: 16, justifyContent: 'center' }}>
+        <span>
+          {pa.name}: {res(t.aGoal, shown >= 1)}
+        </span>
+        <span>
+          {pb.name}: {res(t.bGoal, shown >= 2)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Devuelve `value`, pero cada cambio llega recién después de `ms`. */
+function useDelayed<T>(value: T, ms: number): T {
+  const [shown, setShown] = useState(value);
+  const key = JSON.stringify(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setShown(value), ms);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, ms]);
+  return shown;
+}
+
+/** Demo que se repite en la pantalla de explicación. */
+function DemoLoop({ width }: { width: number }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setN((x) => x + 1), SHOT_MS + 400);
+    return () => window.clearInterval(id);
+  }, []);
+  const demos = [
+    { kick: 0, dive: 2, goal: true },
+    { kick: 2, dive: 2, goal: false },
+    { kick: 1, dive: 0, goal: true },
+    { kick: 0, dive: 0, goal: false }
+  ];
+  const d = demos[n % demos.length];
+  return (
+    <PenaltyScene
+      key={n}
+      kicker={{ seed: 'pateador', hue: 40, expression: 'smug' }}
+      keeper={{ seed: 'arquero9', hue: 200, expression: 'surprised' }}
+      {...d}
+      width={width}
+      label="Ejemplo de un penal"
+    />
+  );
+}
+
 // ---------- Pantalla grande ----------
+
+/** Un partido en la pantalla grande. El ganador se revela cuando termina la animación. */
+function MatchCard({ m, players }: { m: MatchView; players: Record<string, PublicPlayer> }) {
+  const n = m.tandas.length;
+  const [seen, setSeen] = useState(0); // tandas cuya animación ya terminó
+  const last = m.tandas[n - 1];
+  const revealed = seen >= n;
+  const winner = revealed ? m.winner : null;
+  return (
+    <div className="dashed-box stack fade-in" style={{ gap: 10, borderColor: winner ? '#f3d36b66' : undefined }}>
+      <div className="row between">
+        {[m.a, m.b].map((pid, i) => (
+          <div key={pid} className="row" style={{ gap: 8, flexDirection: i ? 'row-reverse' : 'row' }}>
+            <span style={{ position: 'relative' }}>
+              {winner === pid && (
+                <span style={{ position: 'absolute', left: 10, top: -18 }}>
+                  <Crown size={32} />
+                </span>
+              )}
+              {players[pid] && (
+                <Avatar
+                  avatar={winner ? { ...players[pid].avatar, expression: winner === pid ? 'happy' : 'sad' } : players[pid].avatar}
+                  size={50}
+                  offline={!players[pid].connected}
+                />
+              )}
+            </span>
+            <span style={{ fontSize: 24, fontWeight: 700 }}>{players[pid]?.name}</span>
+          </div>
+        ))}
+      </div>
+      {last && <TandaReplay key={n} t={last} a={m.a} b={m.b} players={players} width={360} onDone={() => setSeen(n)} />}
+      <div className="row between" style={{ fontSize: 19, minHeight: 50 }}>
+        {winner ? (
+          <span className="yellow" style={{ fontWeight: 700 }}>
+            Ganó {players[winner]?.name}
+            {n > 1 ? ` en la tanda ${n}` : ''}
+          </span>
+        ) : m.winner ? (
+          <span className="muted">Pateando…</span>
+        ) : (
+          <>
+            <span>
+              {revealed && last ? (
+                <span className="yellow">{last.aGoal ? 'Los dos la metieron' : 'Los dos fallaron'}: ¡otra tanda! </span>
+              ) : null}
+              <span className="muted">
+                {players[m.a]?.name} {m.ready.a ? '✓' : '…'} · {players[m.b]?.name} {m.ready.b ? '✓' : '…'}
+              </span>
+            </span>
+            <Countdown deadline={m.deadline} size={46} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function PenalesHost({ game, players, send }: HostProps<HostView>) {
   const g = game;
@@ -104,7 +321,9 @@ export function PenalesHost({ game, players, send }: HostProps<HostView>) {
   const nextDeadline = active.length ? Math.min(...active.map((m) => m.deadline)) : null;
   useWhenTimeUp(nextDeadline, g.phase === 'playing', () => send({ t: 'game', action: 'timeout' }));
 
-  const table = [...g.table].sort((x, y) => y.pg - x.pg || y.gf - y.gc - (x.gf - x.gc) || y.gf - x.gf);
+  // La tabla se actualiza cuando terminan las animaciones, para no adelantar resultados.
+  const shownTable = useDelayed(g.table, SHOT_MS + 1700);
+  const table = [...shownTable].sort((x, y) => y.pg - x.pg || y.gf - y.gc - (x.gf - x.gc) || y.gf - x.gf);
 
   return (
     <div className="row" style={{ alignItems: 'stretch', gap: 'clamp(24px, 3vw, 44px)', flex: 1, flexWrap: 'wrap' }}>
@@ -120,10 +339,7 @@ export function PenalesHost({ game, players, send }: HostProps<HostView>) {
             <p className="muted" style={{ margin: 0 }}>
               {g.rounds} fechas · varios partidos a la vez · si alguien no elige en 20 segundos, patea al azar.
             </p>
-            <div className="row">
-              <Shot kick={0} dive={2} goal width={260} label="Ejemplo de un gol" />
-              <Shot kick={2} dive={2} goal={false} width={260} label="Ejemplo de una atajada" />
-            </div>
+            <DemoLoop width={420} />
           </div>
         ) : (
           <>
@@ -133,56 +349,10 @@ export function PenalesHost({ game, players, send }: HostProps<HostView>) {
               </h2>
               {g.bye && <span className="muted big">Descansa: {players[g.bye]?.name}</span>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 18 }}>
-              {g.matches.map((m) => {
-                const last = m.tandas[m.tandas.length - 1];
-                return (
-                  <div key={m.id} className="dashed-box stack fade-in" style={{ gap: 10, borderColor: m.winner ? '#f3d36b66' : undefined }}>
-                    <div className="row between">
-                      {[m.a, m.b].map((pid, i) => (
-                        <div key={pid} className="row" style={{ gap: 8, flexDirection: i ? 'row-reverse' : 'row' }}>
-                          <span style={{ position: 'relative' }}>
-                            {m.winner === pid && (
-                              <span style={{ position: 'absolute', left: 10, top: -18 }}>
-                                <Crown size={32} />
-                              </span>
-                            )}
-                            {players[pid] && (
-                              <Avatar
-                                avatar={m.winner ? { ...players[pid].avatar, expression: m.winner === pid ? 'happy' : 'sad' } : players[pid].avatar}
-                                size={50}
-                                offline={!players[pid].connected}
-                              />
-                            )}
-                          </span>
-                          <span style={{ fontSize: 24, fontWeight: 700 }}>{players[pid]?.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {last && (
-                      <div className="row" style={{ justifyContent: 'space-around', flexWrap: 'wrap' }}>
-                        <ShotRow who={m.a} keeper={m.b} t={last} kickerSide="a" players={players} />
-                        <ShotRow who={m.b} keeper={m.a} t={last} kickerSide="b" players={players} />
-                      </div>
-                    )}
-                    <div className="row between" style={{ fontSize: 19 }}>
-                      {m.winner ? (
-                        <span className="yellow" style={{ fontWeight: 700 }}>
-                          Ganó {players[m.winner]?.name}
-                          {m.tandas.length > 1 ? ` en la tanda ${m.tandas.length}` : ''}
-                        </span>
-                      ) : (
-                        <>
-                          <span>
-                            {last ? `Tanda ${m.tandas.length + 1}` : 'Tanda 1'} <span className="muted">· {players[m.a]?.name} {m.ready.a ? '✓' : '…'} · {players[m.b]?.name} {m.ready.b ? '✓' : '…'}</span>
-                          </span>
-                          <Countdown deadline={m.deadline} size={46} />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 18 }}>
+              {g.matches.map((m) => (
+                <MatchCard key={m.id} m={m} players={players} />
+              ))}
             </div>
           </>
         )}
@@ -295,6 +465,7 @@ export function PenalesPlay(props: PlayProps<PlayView>) {
 
 function PenalesTanda({ game, me, players, send }: PlayProps<PlayView>) {
   const g = game;
+  const [replayed, setReplayed] = useState(false); // ya terminó la animación de la última tanda
   const [kick, setKick] = useState<number | null>(null);
   const [dive, setDive] = useState<number | null>(null);
   const rec = g.record;
@@ -361,16 +532,13 @@ function PenalesTanda({ game, me, players, send }: PlayProps<PlayView>) {
       {last && (
         <div className="dashed-box stack" style={{ gap: 6, alignItems: 'center' }}>
           <span className="muted">Tanda {m.tandas.length}</span>
-          <div className="row" style={{ justifyContent: 'space-around', width: '100%' }}>
-            <ShotRow who={me.id} keeper={m.rival} t={last} kickerSide={m.me} players={players} width={140} />
-            <ShotRow who={m.rival} keeper={me.id} t={last} kickerSide={m.me === 'a' ? 'b' : 'a'} players={players} width={140} />
-          </div>
-          {!m.winner && <span className="yellow" style={{ fontSize: 22 }}>{last.aGoal && last.bGoal ? 'Los dos la metieron: ¡otra!' : 'Los dos fallaron: ¡otra!'}</span>}
+          <TandaReplay t={last} a={m.a} b={m.b} players={players} width={300} onDone={() => setReplayed(true)} />
+          {!m.winner && replayed && <span className="yellow" style={{ fontSize: 22 }}>{last.aGoal && last.bGoal ? 'Los dos la metieron: ¡otra!' : 'Los dos fallaron: ¡otra!'}</span>}
         </div>
       )}
 
-      {m.winner ? (
-        <div className="stack center" style={{ alignItems: 'center', marginTop: 10 }}>
+      {m.winner && !replayed ? null : m.winner ? (
+        <div className="stack center fade-in" style={{ alignItems: 'center', marginTop: 10 }}>
           {won && <Crown size={70} filled />}
           <h1 className={`display h1 ${won ? 'yellow' : 'pink'}`}>{won ? '¡Ganaste!' : 'Perdiste'}</h1>
           <p className="muted">Esperá a que terminen los otros partidos.</p>

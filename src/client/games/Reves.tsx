@@ -240,9 +240,9 @@ function RevesRound({ g, send }: { g: PlayView; send: PlayProps<PlayView>['send'
         setWave(peaks(rev));
         stopRef.current();
         stopRef.current = play(rev);
-      } catch {
+      } catch (e) {
         setRec(null);
-        setErr('No se pudo procesar la grabación, probá de nuevo');
+        setErr(e instanceof Error && e.message === 'Grabación muy corta' ? 'Muy cortito: mantené grabando un poco más' : 'No se pudo procesar la grabación, probá de nuevo');
       }
     } else {
       try {
@@ -302,7 +302,22 @@ function RevesRound({ g, send }: { g: PlayView; send: PlayProps<PlayView>['send'
           </button>
         </div>
         <span className="muted">{rec ? 'Grabando… tocá para parar' : clip ? 'Podés escucharlo o grabar de nuevo' : 'Tocá el botón rojo para grabar'}</span>
+        {clip && !rec && (
+          <button
+            type="button"
+            className="chip"
+            onClick={() => {
+              stopRef.current();
+              stopRef.current = play(clip);
+            }}
+          >
+            Escuchar mi grabación al derecho
+          </button>
+        )}
         {err && <span className="pink">{err}</span>}
+        <span className="muted" style={{ fontSize: 14, textAlign: 'center' }}>
+          ¿No se escucha? Subí el volumen del celu.
+        </span>
       </div>
 
       {sent ? (

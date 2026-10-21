@@ -235,3 +235,52 @@ textarea.chalk-input { height: auto; min-height: 90px; font-size: 20px; border: 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .reveal-hold { filter: blur(9px); transition: filter 0.15s; user-select: none; }
 .reveal-hold.on { filter: none; }
+
+/* ---------- Penales: animación del remate ---------- */
+.pen-scene { position: relative; overflow: hidden; border-radius: 10px; background: radial-gradient(ellipse at 50% 100%, #2c3d35 0%, transparent 70%); }
+.pen-scene > * { position: absolute; }
+.pen-anchor { transform-origin: 50% 100%; line-height: 0; }
+.pen-anchor .avatar { filter: drop-shadow(0 4px 0 #0e1612); }
+.pen-ball svg { display: block; }
+.pen-result { left: 0; right: 0; text-align: center; font-family: var(--display); line-height: 1; animation: pen-pop 0.45s cubic-bezier(.3,1.6,.5,1) both; text-shadow: 0 3px 0 #0e1612; }
+.pen-instant, .pen-instant * { animation-duration: 1ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+
+@keyframes pen-kicker {
+  0%   { transform: translate(calc(var(--s) * -78px), calc(var(--s) * 14px)) rotate(0deg); }
+  20%  { transform: translate(calc(var(--s) * -66px), calc(var(--s) * 4px)) rotate(-5deg); }
+  40%  { transform: translate(calc(var(--s) * -52px), calc(var(--s) * 10px)) rotate(4deg); }
+  60%  { transform: translate(calc(var(--s) * -38px), calc(var(--s) * 2px)) rotate(-5deg); }
+  72%  { transform: translate(calc(var(--s) * -28px), 0px) rotate(-14deg); }
+  84%  { transform: translate(calc(var(--s) * -20px), calc(var(--s) * -4px)) rotate(16deg); }
+  100% { transform: translate(calc(var(--s) * -22px), 0px) rotate(5deg); }
+}
+@keyframes pen-sway {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(calc(var(--s) * -10px)) rotate(-4deg); }
+  75% { transform: translateX(calc(var(--s) * 10px)) rotate(4deg); }
+}
+@keyframes pen-dive {
+  0%   { transform: translate(0px, 0px) rotate(0deg); }
+  45%  { transform: translate(calc(var(--dx) * 0.55), calc(var(--s) * -34px)) rotate(calc(var(--rot) * 0.6)); }
+  100% { transform: translate(var(--dx), calc(var(--s) * -12px)) rotate(var(--rot)); }
+}
+@keyframes pen-ball-goal {
+  0%   { transform: translate(0px, 0px) scale(1); }
+  50%  { transform: translate(calc(var(--bx) * 0.55), calc(var(--by) * 0.8)) scale(0.85); }
+  100% { transform: translate(var(--bx), var(--by)) scale(0.62); }
+}
+@keyframes pen-ball-save {
+  0%   { transform: translate(0px, 0px) scale(1); }
+  55%  { transform: translate(var(--bx), var(--by)) scale(0.64); }
+  100% { transform: translate(var(--rx), var(--ry)) scale(0.82); }
+}
+@keyframes pen-ball-spin { from { rotate: 0deg; } to { rotate: 540deg; } }
+@keyframes pen-net {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(var(--nx), calc(var(--s) * -6px)); }
+  60% { transform: translate(calc(var(--nx) * -0.4), calc(var(--s) * 3px)); }
+}
+@keyframes pen-pop { from { opacity: 0; transform: scale(0.3) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(-3deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .pen-scene, .pen-scene * { animation-duration: 1ms !important; animation-delay: 0s !important; }
+}

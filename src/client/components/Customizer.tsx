@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { EXPRESSIONS, type Avatar as AvatarT } from '../../shared/types';
 import { Avatar, ChalkCircle } from './chalk';
+import { specialForName } from '../../shared/specials';
 
 const HUES = [330, 10, 40, 95, 150, 195, 230, 270];
 const EXPRESSION_LABELS: Record<string, string> = {
@@ -32,6 +33,7 @@ export function Customizer({
   const [name, setName] = useState(initialName);
   const [avatar, setAvatar] = useState<AvatarT>(initialAvatar ?? defaultAvatar());
   const [batch, setBatch] = useState(0);
+  const special = specialForName(name);
 
   // Cuatro formas para elegir; "otras" trae cuatro nuevas.
   const shapes = useMemo(() => {
@@ -50,7 +52,12 @@ export function Customizer({
       }}
     >
       <div className="stack" style={{ alignItems: 'center', gap: 4 }}>
-        <Avatar avatar={avatar} size={150} title="Tu personaje" />
+        <Avatar avatar={{ ...avatar, special }} size={special ? 120 : 150} title="Tu personaje" body />
+        {special && (
+          <span className="yellow" style={{ fontSize: 22, fontWeight: 700 }}>
+            ¡Personaje especial desbloqueado!
+          </span>
+        )}
         <label htmlFor="nombre" className="label">
           tu nombre
         </label>
@@ -59,13 +66,15 @@ export function Customizer({
           className="chalk-input center"
           style={{ width: '80%' }}
           value={name}
-          maxLength={16}
+          maxLength={24}
           autoComplete="nickname"
           placeholder="¿Cómo te dicen?"
           onChange={(e) => setName(e.target.value)}
         />
       </div>
 
+      {!special && (
+        <>
       <div className="stack" style={{ gap: 6 }}>
         <div className="row between">
           <span className="yellow" style={{ fontSize: 22, fontWeight: 700 }}>
@@ -150,6 +159,9 @@ export function Customizer({
           ))}
         </div>
       </div>
+
+        </>
+      )}
 
       <button className="btn yellow block" disabled={!name.trim() || busy} style={{ marginTop: 8 }}>
         {submitLabel}

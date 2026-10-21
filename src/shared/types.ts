@@ -37,6 +37,7 @@ export interface Avatar {
   seed: string;
   hue: number;
   expression: ExpressionName;
+  special?: string; // personaje especial (ver shared/specials.ts); lo asigna el servidor según el nombre
 }
 
 export interface PublicPlayer {

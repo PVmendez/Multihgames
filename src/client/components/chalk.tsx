@@ -4,6 +4,7 @@ import { blobatar } from 'blobatar';
 import * as Expr from 'blobatar/expression';
 import type { Avatar as AvatarT } from '../../shared/types';
 import { fmtTime, useCountdown } from '../lib/room';
+import { specialById } from '../../shared/specials';
 
 // ---------- Avatar (Blobatar) ----------
 
@@ -13,8 +14,32 @@ export function avatarSvg(avatar: AvatarT, title?: string): string {
   return blobatar(avatar.seed, { hue: avatar.hue, tone: 0.85, expression, background: false, title });
 }
 
-export function Avatar({ avatar, size = 56, offline, title }: { avatar: AvatarT; size?: number; offline?: boolean; title?: string }) {
-  const svg = useMemo(() => avatarSvg(avatar, title), [avatar.seed, avatar.hue, avatar.expression, title]);
+/** HTML del avatar (para lugares fuera de React, como los marcadores del mapa). */
+export function avatarHtml(avatar: AvatarT): string {
+  const sp = specialById(avatar.special);
+  if (sp) return `<img src="${sp.face}" alt="" style="width:100%;height:100%;object-fit:contain">`;
+  return avatarSvg(avatar);
+}
+
+/**
+ * Avatar del jugador. `body` muestra el cuerpo entero si es un personaje especial
+ * (alto = 1,8 × `size`); los blobs se ven igual en los dos modos.
+ */
+export function Avatar({ avatar, size = 56, offline, title, body }: { avatar: AvatarT; size?: number; offline?: boolean; title?: string; body?: boolean }) {
+  const sp = specialById(avatar.special);
+  const svg = useMemo(() => (sp ? '' : avatarSvg(avatar, title)), [sp, avatar.seed, avatar.hue, avatar.expression, title]);
+  if (sp) {
+    return (
+      <img
+        className={`avatar${offline ? ' offline' : ''}`}
+        src={body ? sp.body : sp.face}
+        alt={title ?? ''}
+        aria-hidden={title ? undefined : true}
+        style={body ? { height: Math.round(size * 1.8), width: 'auto' } : { width: size, height: size, objectFit: 'contain' }}
+        draggable={false}
+      />
+    );
+  }
   return (
     <span
       className={`avatar${offline ? ' offline' : ''}`}

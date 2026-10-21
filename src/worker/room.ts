@@ -14,6 +14,7 @@ import {
   type ServerMessage
 } from '../shared/types';
 import { placeRanking } from '../shared/text';
+import { specialForName } from '../shared/specials';
 import { chess } from './games/chess';
 import { geo } from './games/geo';
 import { palabra } from './games/palabra';
@@ -64,11 +65,12 @@ async function sha256(text: string): Promise<string> {
 
 const VALID_GAMES: GameType[] = ['chess', 'reves', 'geo', 'palabra', 'penales'];
 
-function cleanAvatar(a: any): Avatar {
+function cleanAvatar(a: any, name: string): Avatar {
   const seed = String(a?.seed ?? 'jugador').slice(0, 40) || 'jugador';
   const hue = Math.max(0, Math.min(360, Math.round(Number(a?.hue) || 0)));
   const expression = String(a?.expression ?? 'happy') as Avatar['expression'];
-  return { seed, hue, expression };
+  const special = specialForName(name);
+  return special ? { seed, hue, expression, special } : { seed, hue, expression };
 }
 
 function cleanList(list: unknown, max: number, len: number): string[] {
@@ -293,13 +295,14 @@ export class Room extends DurableObject<Env> {
       case 'join': {
         if (d.phase === 'final') throw new GameError('El evento ya terminó');
         if (d.order.length >= MAX_PLAYERS) throw new GameError(`La sala está llena (máximo ${MAX_PLAYERS})`);
-        let name = String(msg.name ?? '').trim().slice(0, 16);
+        const typed = String(msg.name ?? '').trim();
+        let name = typed.slice(0, 24);
         if (!name) throw new GameError('Poné tu nombre');
         const taken = new Set(d.order.map((id) => d.players[id].name.toLowerCase()));
         for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${name.replace(/ \d+$/, '')} ${n}`;
         const id = randomId(6);
         const secret = randomId(16);
-        d.players[id] = { id, name, avatar: cleanAvatar(msg.avatar), secret, joinedAt: Date.now() };
+        d.players[id] = { id, name, avatar: cleanAvatar(msg.avatar, name === typed.slice(0, 24) ? typed : name), secret, joinedAt: Date.now() };
         d.order.push(id);
         ws.serializeAttachment({ role: 'player', playerId: id } satisfies Attachment);
         if (d.phase === 'game' && d.game) MODULES[d.games[d.gameIndex].type].onPlayerJoined?.(d.game, id, this.gameCtx(d));
@@ -309,9 +312,9 @@ export class Room extends DurableObject<Env> {
       case 'profile': {
         if (att.role !== 'player' || !att.playerId) throw new GameError('No estás en la sala');
         const p = d.players[att.playerId];
-        const name = String(msg.name ?? '').trim().slice(0, 16);
-        if (name) p.name = name;
-        p.avatar = cleanAvatar(msg.avatar);
+        const name = String(msg.name ?? '').trim().slice(0, 24);
+        if (name && !d.order.some((id) => id !== p.id && d.players[id].name.toLowerCase() === name.toLowerCase())) p.name = name;
+        p.avatar = cleanAvatar(msg.avatar, p.name);
         return true;
       }
       case 'room': {

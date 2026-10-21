@@ -5,7 +5,7 @@ import 'mapillary-js/dist/mapillary.css';
 import { MVD_BOUNDS } from '../../shared/data';
 import { formatKm } from '../../shared/text';
 import type { Avatar as AvatarT } from '../../shared/types';
-import { Avatar, avatarSvg, ChalkCircle, Countdown } from '../components/chalk';
+import { Avatar, avatarHtml, ChalkCircle, Countdown } from '../components/chalk';
 import { RoundLabel, useWhenTimeUp, type HostProps, type PlayProps } from './common';
 
 interface HostView {
@@ -83,7 +83,7 @@ function StreetView({ token, imageId, height }: { token: string; imageId: string
 function avatarIcon(avatar: AvatarT, size = 44) {
   return L.divIcon({
     className: '',
-    html: `<div style="width:${size}px;height:${size}px;filter:drop-shadow(0 3px 0 #0e1612)">${avatarSvg(avatar)}</div>`,
+    html: `<div style="width:${size}px;height:${size}px;filter:drop-shadow(0 3px 0 #0e1612)">${avatarHtml(avatar)}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2]
   });

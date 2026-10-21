@@ -195,7 +195,7 @@ function Lobby({ room, send }: { room: RoomView; send: Send }) {
               style={{ alignItems: 'center', gap: 4, background: 'none', border: 0, color: 'inherit', cursor: 'pointer' }}
               onClick={() => confirm(`¿Sacar a ${p.name} de la sala?`) && send({ t: 'room', action: 'kick', payload: { playerId: p.id } })}
             >
-              <Avatar avatar={p.avatar} size={84} offline={!p.connected} />
+              <Avatar avatar={p.avatar} size={84} offline={!p.connected} body />
               <span style={{ fontSize: 24, fontWeight: 700 }}>{p.name}</span>
             </button>
           ))}
@@ -320,7 +320,7 @@ function Final({ room }: { room: RoomView }) {
               <span className="wiggle">
                 <Crown size={110} filled />
               </span>
-              <Avatar avatar={{ ...p.avatar, expression: 'happy' }} size={220} />
+              <Avatar avatar={{ ...p.avatar, expression: 'happy' }} size={220} body />
               <div className="display" style={{ fontSize: 'clamp(56px, 8vw, 110px)' }}>
                 {p.name}
               </div>
