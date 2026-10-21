@@ -43,6 +43,7 @@ export function matchesName(guess: string, answer: string): boolean {
   if (last && close(g, last)) return true;
   // Nombres largos: alcanza con dos partes del nombre bien puestas ("Gustavo Cerati" → "gustavo cerati", "Juan Martín del Potro" → "martin potro")
   const gp = g.split(' ').filter((x) => x.length > 2);
+  if (gp.length === 1 && last && close(gp[0], last)) return true; // "el potro", "la shakira"
   const hits = gp.filter((x) => parts.some((p) => close(x, p))).length;
   return parts.length > 1 && hits >= Math.min(2, parts.length) && hits === gp.length;
 }
