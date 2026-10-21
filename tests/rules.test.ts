@@ -271,6 +271,10 @@ describe('personajes especiales', () => {
     expect(specialForName('  manuel   PERERA ')).toBe('manuel');
     expect(specialForName('Facundo Centurión')).toBe('facundo');
     expect(specialForName('facundo centurion')).toBe('facundo');
+    expect(specialForName('Nacho Lima')).toBe('nacho');
+    expect(specialForName('bruno garay')).toBe('bruno');
+    expect(specialForName('Maciel Galeano')).toBe('maciel');
+    expect(specialForName('Pablo Méndez')).toBe('pablo');
     expect(specialForName('Manuel')).toBeUndefined();
     expect(specialForName('Pablo')).toBeUndefined();
     // el script de npm run hash calcula lo mismo
@@ -283,5 +287,6 @@ describe('personajes especiales', () => {
     const src = fs.readFileSync(new URL('../src/shared/specials.ts', import.meta.url), 'utf8').toLowerCase();
     expect(src).not.toContain('perera');
     expect(src).not.toContain('centuri');
+    for (const word of ['lima', 'garay', 'galeano', 'mendez']) expect(src).not.toContain(word);
   });
 });

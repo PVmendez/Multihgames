@@ -19,7 +19,7 @@ Plataforma de multijuegos para juntadas, estilo "pizarrón de club". Sirve para 
 
 **Personajes:** se hacen con [Blobatar](https://blobatar.dev). Cada uno elige forma, color y expresión.
 
-**Personajes especiales:** si alguien se anota con un nombre clave, su avatar pasa a ser una caricatura propia: se ve en el lobby, en las tablas, en el mapa y haciendo los penales. Se configuran en `src/shared/specials.ts`, con las imágenes en `public/personajes/` (cuerpo entero con fondo transparente y la cara). Como el repo es público, los nombres no se guardan en texto: solo su huella, que se calcula con `npm run hash -- "Nombre Apellido"`.
+**Personajes especiales:** si alguien se anota con un nombre clave, su avatar pasa a ser una caricatura propia: se ve en el lobby, en las tablas, en el mapa y haciendo los penales. El admin también puede poner su nombre al crear el evento: aparece como el profe que conduce y entrega la copa. Si su nombre coincide con uno clave, también usa su caricatura. Se configuran en `src/shared/specials.ts`, con las imágenes en `public/personajes/` (cuerpo entero con fondo transparente y la cara). Como el repo es público, los nombres no se guardan en texto: solo su huella, que se calcula con `npm run hash -- "Nombre Apellido"`.
 
 Máximo 12 jugadores por sala.
 

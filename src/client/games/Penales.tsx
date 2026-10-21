@@ -259,7 +259,7 @@ function DemoLoop({ width }: { width: number }) {
 // ---------- Pantalla grande ----------
 
 /** Un partido en la pantalla grande. El ganador se revela cuando termina la animación. */
-function MatchCard({ m, players }: { m: MatchView; players: Record<string, PublicPlayer> }) {
+function MatchCard({ m, players, sceneWidth }: { m: MatchView; players: Record<string, PublicPlayer>; sceneWidth: number }) {
   const n = m.tandas.length;
   const [seen, setSeen] = useState(0); // tandas cuya animación ya terminó
   const last = m.tandas[n - 1];
@@ -279,16 +279,16 @@ function MatchCard({ m, players }: { m: MatchView; players: Record<string, Publi
               {players[pid] && (
                 <Avatar
                   avatar={winner ? { ...players[pid].avatar, expression: winner === pid ? 'happy' : 'sad' } : players[pid].avatar}
-                  size={50}
+                  size={sceneWidth < 380 ? 40 : 50}
                   offline={!players[pid].connected}
                 />
               )}
             </span>
-            <span style={{ fontSize: 24, fontWeight: 700 }}>{players[pid]?.name}</span>
+            <span style={{ fontSize: sceneWidth < 300 ? 18 : 22, fontWeight: 700, whiteSpace: 'nowrap' }}>{sceneWidth < 380 ? players[pid]?.name.split(' ')[0] : players[pid]?.name}</span>
           </div>
         ))}
       </div>
-      {last && <TandaReplay key={n} t={last} a={m.a} b={m.b} players={players} width={360} onDone={() => setSeen(n)} />}
+      {last && <TandaReplay key={n} t={last} a={m.a} b={m.b} players={players} width={sceneWidth} onDone={() => setSeen(n)} />}
       <div className="row between" style={{ fontSize: 19, minHeight: 50 }}>
         {winner ? (
           <span className="yellow" style={{ fontWeight: 700 }}>
@@ -349,9 +349,9 @@ export function PenalesHost({ game, players, send }: HostProps<HostView>) {
               </h2>
               {g.bye && <span className="muted big">Descansa: {players[g.bye]?.name}</span>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${g.matches.length > 2 ? 230 : 340}px, 1fr))`, gap: 14 }}>
               {g.matches.map((m) => (
-                <MatchCard key={m.id} m={m} players={players} />
+                <MatchCard key={m.id} m={m} players={players} sceneWidth={g.matches.length > 2 ? 210 : g.matches.length === 2 ? 310 : 380} />
               ))}
             </div>
           </>

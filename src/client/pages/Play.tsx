@@ -140,6 +140,12 @@ function PlayerScreen({ msg, send, onEdit }: { msg: PlayerMessage; send: ReturnT
           <button className="chip" onClick={onEdit}>
             Cambiar mi personaje
           </button>
+          {room.admin && (
+            <div className="row" style={{ gap: 10, marginTop: 6 }}>
+              <Avatar avatar={room.admin.avatar} size={40} />
+              <span className="muted">Conduce: Prof. {room.admin.name}</span>
+            </div>
+          )}
         </div>
         <div className="stack push dashed-box" style={{ gap: 6 }}>
           <span className="yellow" style={{ fontWeight: 700 }}>

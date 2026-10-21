@@ -163,6 +163,20 @@ function JoinNote({ code }: { code: string }) {
   );
 }
 
+/** El profe que conduce: su personaje con un cartelito. */
+function AdminBadge({ room, size = 70, label = 'a cargo de la clase' }: { room: RoomView; size?: number; label?: string }) {
+  if (!room.admin) return null;
+  return (
+    <div className="row" style={{ gap: 14, alignItems: 'flex-end' }}>
+      <Avatar avatar={room.admin.avatar} size={size} body title={room.admin.name} />
+      <div className="paper" style={{ transform: 'rotate(-3deg)', padding: '10px 14px', marginBottom: 10 }}>
+        <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>Prof. {room.admin.name}</div>
+        <div style={{ fontSize: 16 }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
 function Lobby({ room, send }: { room: RoomView; send: Send }) {
   const next = room.games[0];
   return (
@@ -176,6 +190,9 @@ function Lobby({ room, send }: { room: RoomView; send: Send }) {
           <Underline width={300} />
         </div>
         <GamesList room={room} />
+        <div className="push">
+          <AdminBadge room={room} />
+        </div>
       </div>
       <div className="host-main">
         <div className="row between wrap" style={{ alignItems: 'flex-start', gap: 24 }}>
@@ -339,6 +356,9 @@ function Final({ room }: { room: RoomView }) {
             <b>{room.totals[p.id] ?? 0}</b>
           </div>
         ))}
+        <div className="push">
+          <AdminBadge room={room} size={80} label="entrega la copa" />
+        </div>
       </div>
     </div>
   );

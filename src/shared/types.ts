@@ -66,9 +66,15 @@ export interface GameResult {
 
 export type RoomPhase = 'lobby' | 'game' | 'results' | 'final';
 
+export interface AdminInfo {
+  name: string;
+  avatar: Avatar;
+}
+
 export interface RoomView {
   code: string;
   name: string;
+  admin: AdminInfo | null; // el profe / anfitrión (no juega, conduce)
   phase: RoomPhase;
   games: GameConfig[];
   gameIndex: number; // juego en curso, o el próximo a jugar
@@ -113,6 +119,7 @@ export type ClientMessage =
 export interface CreateRoomRequest {
   name: string;
   pin: string;
+  adminName?: string;
   games: GameConfig[];
   customWords?: string[];
   customFamous?: string[];

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { navigate } from '../main';
-import { ChalkCircle, Ledge, Underline } from '../components/chalk';
+import { Avatar, ChalkCircle, Ledge, Underline } from '../components/chalk';
+import { specialForName } from '../../shared/specials';
 import { DEFAULT_ROUNDS, GAME_INFO, type CreateRoomRequest, type GameType } from '../../shared/types';
 
 const ALL: GameType[] = ['chess', 'reves', 'geo', 'penales', 'palabra'];
@@ -18,6 +19,7 @@ export const pendingPin = {
 export function Create() {
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
+  const [adminName, setAdminName] = useState('');
   const [games, setGames] = useState<{ type: GameType; on: boolean; rounds: number }[]>(
     ALL.map((type) => ({ type, on: true, rounds: DEFAULT_ROUNDS[type] }))
   );
@@ -44,6 +46,7 @@ export function Create() {
     const body: CreateRoomRequest = {
       name: name.trim(),
       pin,
+      adminName: adminName.trim() || undefined,
       games: chosen.map(({ type, rounds }) => ({ type, rounds })),
       customWords: words.split(/[\n,]/).map((w) => w.trim()).filter(Boolean),
       customFamous: famous.split(/\n/).map((w) => w.trim()).filter(Boolean)
@@ -84,6 +87,19 @@ export function Create() {
           <div className="field">
             <label htmlFor="ev">Nombre del evento o del grupo</label>
             <input id="ev" className="chalk-input" value={name} maxLength={40} placeholder="Los pibes del barrio" onChange={(e) => setName(e.target.value)} />
+          </div>
+
+          <div className="row wrap" style={{ alignItems: 'flex-end', gap: 20 }}>
+            <div className="field grow" style={{ minWidth: 240 }}>
+              <label htmlFor="admin">Tu nombre (el profe que conduce, opcional)</label>
+              <input id="admin" className="chalk-input" value={adminName} maxLength={24} placeholder="Prof. …" onChange={(e) => setAdminName(e.target.value)} />
+            </div>
+            {specialForName(adminName) && (
+              <div className="row" style={{ gap: 10 }}>
+                <Avatar avatar={{ seed: 'x', hue: 0, expression: 'happy', special: specialForName(adminName) }} size={56} />
+                <span className="yellow" style={{ fontWeight: 700 }}>¡Personaje especial!</span>
+              </div>
+            )}
           </div>
 
           <div className="field" style={{ maxWidth: 280 }}>

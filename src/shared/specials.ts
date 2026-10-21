@@ -32,7 +32,11 @@ export function nameHash(name: string): string {
 
 export const SPECIALS: SpecialCharacter[] = [
   { id: 'manuel', hash: '108b462ff03c91', face: '/personajes/manuel-cara.webp', body: '/personajes/manuel.webp' },
-  { id: 'facundo', hash: '1fd6f6b3d2017e', face: '/personajes/facundo-cara.webp', body: '/personajes/facundo.webp' }
+  { id: 'facundo', hash: '1fd6f6b3d2017e', face: '/personajes/facundo-cara.webp', body: '/personajes/facundo.webp' },
+  { id: 'nacho', hash: '161ea24afeaef3', face: '/personajes/nacho-cara.webp', body: '/personajes/nacho.webp' },
+  { id: 'bruno', hash: '1f31b9c4a66365', face: '/personajes/bruno-cara.webp', body: '/personajes/bruno.webp' },
+  { id: 'maciel', hash: '17c7b8652306b8', face: '/personajes/maciel-cara.webp', body: '/personajes/maciel.webp' },
+  { id: 'pablo', hash: '714c024d79560', face: '/personajes/pablo-cara.webp', body: '/personajes/pablo.webp' }
 ];
 
 export function specialForName(name: string): string | undefined {

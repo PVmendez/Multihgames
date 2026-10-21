@@ -32,6 +32,7 @@ interface StoredPlayer extends Omit<PublicPlayer, 'connected'> {
 interface RoomData {
   code: string;
   name: string;
+  admin?: { name: string; avatar: Avatar } | null;
   pinHash: string;
   adminToken: string;
   createdAt: number;
@@ -71,6 +72,15 @@ function cleanAvatar(a: any, name: string): Avatar {
   const expression = String(a?.expression ?? 'happy') as Avatar['expression'];
   const special = specialForName(name);
   return special ? { seed, hue, expression, special } : { seed, hue, expression };
+}
+
+/** Avatar del admin: personaje especial si el nombre coincide, si no un blob fijo derivado del nombre. */
+function adminAvatar(name: string): Avatar {
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const special = specialForName(name);
+  const base: Avatar = { seed: `profe-${name}`, hue: h % 360, expression: 'smug' };
+  return special ? { ...base, special } : base;
 }
 
 function cleanList(list: unknown, max: number, len: number): string[] {
@@ -135,9 +145,11 @@ export class Room extends DurableObject<Env> {
       .filter((g) => VALID_GAMES.includes(g?.type))
       .map((g) => ({ type: g.type, rounds: Math.max(1, Math.min(g.type === 'palabra' ? 60 : g.type === 'penales' ? 2 : 15, Math.round(Number(g.rounds) || 1))) }));
     if (!games.length) return new Response('Elegí al menos un juego', { status: 400 });
+    const adminName = String(body.adminName ?? '').trim().slice(0, 24);
     this.data = {
       code: body.code,
       name,
+      admin: adminName ? { name: adminName, avatar: adminAvatar(adminName) } : null,
       pinHash: await sha256(`${body.code}:${pin}`),
       adminToken: randomId(),
       createdAt: Date.now(),
@@ -187,6 +199,7 @@ export class Room extends DurableObject<Env> {
     return {
       code: d.code,
       name: d.name,
+      admin: d.admin ?? null,
       phase: d.phase,
       games: d.games,
       gameIndex: d.gameIndex,
