@@ -110,11 +110,11 @@ describe('nombres al revés', () => {
     expect(matchesName('Messi', 'Lionel Messi')).toBe(true);
     expect(matchesName('Cavani', 'Luis Suárez')).toBe(false);
     expect(matchesName('', 'Shakira')).toBe(false);
-    expect(matchesName('vampiro lacteo', 'El Vampiro Lácteo')).toBe(true);
-    expect(matchesName('martinez caballero', 'Cristian Andrés Martínez Caballero')).toBe(true);
-    expect(matchesName('cristian caballero', 'Cristian Andrés Martínez Caballero')).toBe(true);
-    expect(matchesName('cristian perez', 'Cristian Andrés Martínez Caballero')).toBe(false);
-    expect(matchesName('monroy', 'Alexis Monrroy')).toBe(true);
+    expect(matchesName('martin potro', 'Juan Martín del Potro')).toBe(true);
+    expect(matchesName('juan potro', 'Juan Martín del Potro')).toBe(true);
+    expect(matchesName('juan perez', 'Juan Martín del Potro')).toBe(false);
+    expect(matchesName('el potro', 'Juan Martín del Potro')).toBe(true);
+    expect(matchesName('ronaldo', 'Cristiano Ronaldo')).toBe(true);
   });
 
   it('acierto + velocidad', () => {
@@ -141,9 +141,8 @@ describe('lista de famosos', () => {
     const names = FAMOUS.map((f) => f.name);
     for (const n of ['Juanes', 'Ricardo Arjona', 'Luciano Pereyra', 'Gustavo Cerati', 'Natalia Oreiro']) expect(names).not.toContain(n);
     const conocidos = FAMOUS.filter((f) => f.category === 'Conocidos').map((f) => f.name);
-    expect(conocidos).toContain('Fabio Lima');
-    expect(conocidos).toContain('El Vampiro Lácteo');
     expect(conocidos.length).toBe(5);
+    expect(conocidos.every((n) => /^[\p{L} ]+$/u.test(n))).toBe(true); // se decodificaron bien
   });
   it('cada partida trae conocidos (hasta la mitad) y la pista de categoría', () => {
     const c = ctx({ config: { type: 'reves', rounds: 8 } });
