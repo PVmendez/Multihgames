@@ -17,10 +17,11 @@ import { placeRanking } from '../shared/text';
 import { chess } from './games/chess';
 import { geo } from './games/geo';
 import { palabra } from './games/palabra';
+import { penales } from './games/penales';
 import { currentFamous, reves, type RevesState } from './games/reves';
 import { GameError, type Env, type GameCtx, type GameModule } from './games/types';
 
-const MODULES: Record<GameType, GameModule<any>> = { chess, reves, geo, palabra };
+const MODULES: Record<GameType, GameModule<any>> = { chess, reves, geo, palabra, penales };
 
 interface StoredPlayer extends Omit<PublicPlayer, 'connected'> {
   secret: string;
@@ -61,7 +62,7 @@ async function sha256(text: string): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-const VALID_GAMES: GameType[] = ['chess', 'reves', 'geo', 'palabra'];
+const VALID_GAMES: GameType[] = ['chess', 'reves', 'geo', 'palabra', 'penales'];
 
 function cleanAvatar(a: any): Avatar {
   const seed = String(a?.seed ?? 'jugador').slice(0, 40) || 'jugador';
@@ -130,7 +131,7 @@ export class Room extends DurableObject<Env> {
     if (!/^\d{4,8}$/.test(pin)) return new Response('El PIN tiene que ser de 4 a 8 números', { status: 400 });
     const games = (Array.isArray(body.games) ? body.games : [])
       .filter((g) => VALID_GAMES.includes(g?.type))
-      .map((g) => ({ type: g.type, rounds: Math.max(1, Math.min(g.type === 'palabra' ? 60 : 15, Math.round(Number(g.rounds) || 1))) }));
+      .map((g) => ({ type: g.type, rounds: Math.max(1, Math.min(g.type === 'palabra' ? 60 : g.type === 'penales' ? 2 : 15, Math.round(Number(g.rounds) || 1))) }));
     if (!games.length) return new Response('Elegí al menos un juego', { status: 400 });
     this.data = {
       code: body.code,

@@ -6,6 +6,7 @@ import { pendingPin } from './Create';
 import { ChessHost } from '../games/Chess';
 import { RevesHost } from '../games/Reves';
 import { PalabraHost } from '../games/Palabra';
+import { PenalesHost } from '../games/Penales';
 
 // Mapillary pesa ~1 MB: se baja solo cuando se juega GeoGuesser.
 const GeoHost = lazy(() => import('../games/Geo').then((m) => ({ default: m.GeoHost })));
@@ -114,6 +115,7 @@ function HostScreen({ msg, send }: { msg: HostMessage; send: Send }) {
           </Suspense>
         )}
       {game?.type === 'palabra' && <PalabraHost {...props} />}
+        {game?.type === 'penales' && <PenalesHost {...props} />}
     </div>
   );
 }

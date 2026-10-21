@@ -7,6 +7,7 @@ import { navigate } from '../main';
 import { ChessPlay } from '../games/Chess';
 import { RevesPlay } from '../games/Reves';
 import { PalabraPlay } from '../games/Palabra';
+import { PenalesPlay } from '../games/Penales';
 import { playerMap } from './Host';
 
 // Mapillary pesa ~1 MB: se baja solo cuando se juega GeoGuesser.
@@ -168,6 +169,7 @@ function PlayerScreen({ msg, send, onEdit }: { msg: PlayerMessage; send: ReturnT
           </Suspense>
         )}
         {game?.type === 'palabra' && <PalabraPlay {...props} />}
+        {game?.type === 'penales' && <PenalesPlay {...props} />}
       </>
     );
   }

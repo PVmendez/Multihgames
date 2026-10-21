@@ -1,6 +1,6 @@
 // Tipos compartidos entre el Worker (servidor de la sala) y el cliente (host y celulares).
 
-export type GameType = 'chess' | 'reves' | 'geo' | 'palabra';
+export type GameType = 'chess' | 'reves' | 'geo' | 'palabra' | 'penales';
 
 export const GAME_INFO: Record<GameType, { name: string; mode: string; blurb: string }> = {
   chess: {
@@ -17,6 +17,11 @@ export const GAME_INFO: Record<GameType, { name: string; mode: string; blurb: st
     name: 'GeoGuesser Montevideo',
     mode: 'con el celu',
     blurb: 'Todos ven el mismo lugar de Montevideo. Clavá tu imán en el mapa: gana el que pega más cerca.'
+  },
+  penales: {
+    name: 'Penales',
+    mode: 'con el celu',
+    blurb: 'Mini liga todos contra todos. Cada uno patea y ataja a la vez: si uno mete y el otro no, gana el partido.'
   },
   palabra: {
     name: 'No digas tu palabra',
@@ -43,7 +48,7 @@ export interface PublicPlayer {
 
 export interface GameConfig {
   type: GameType;
-  rounds: number; // ajedrez: retos · revés: famosos · geo: lugares · palabra: minutos
+  rounds: number; // ajedrez: retos · revés: famosos · geo: lugares · palabra: minutos · penales: vueltas
 }
 
 export interface RankEntry {
@@ -115,4 +120,4 @@ export interface CreateRoomRequest {
 export const DEFAULT_SCALE = [10, 8, 6, 5, 4, 3, 2, 1];
 export const MAX_PLAYERS = 12;
 
-export const DEFAULT_ROUNDS: Record<GameType, number> = { chess: 3, reves: 8, geo: 5, palabra: 15 };
+export const DEFAULT_ROUNDS: Record<GameType, number> = { chess: 3, reves: 8, geo: 5, palabra: 15, penales: 1 };

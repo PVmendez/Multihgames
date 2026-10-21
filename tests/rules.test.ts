@@ -201,3 +201,65 @@ describe('geo: búsqueda en Mapillary', () => {
     expect((bbox[2] - bbox[0]) * (bbox[3] - bbox[1])).toBeLessThan(0.01);
   });
 });
+
+describe('penales', () => {
+  it('fixture todos contra todos sin repetir cruces', async () => {
+    const { fixture } = await import('../src/worker/games/penales');
+    for (const n of [2, 3, 6, 7]) {
+      const ids = Array.from({ length: n }, (_, i) => `p${i}`);
+      const { rounds, byes } = fixture(ids);
+      const seen = new Set<string>();
+      for (const [ri, r] of rounds.entries()) {
+        const inRound = new Set<string>();
+        for (const { a, b } of r) {
+          const k = [a, b].sort().join('-');
+          expect(seen.has(k)).toBe(false);
+          seen.add(k);
+          expect(inRound.has(a) || inRound.has(b)).toBe(false);
+          inRound.add(a);
+          inRound.add(b);
+        }
+        if (n % 2) expect(byes[ri]).not.toBeNull();
+      }
+      expect(seen.size).toBe((n * (n - 1)) / 2);
+    }
+  });
+
+  it('gana el que mete si el otro falla; si empatan la tanda, se repite', async () => {
+    const { penales } = await import('../src/worker/games/penales');
+    const c = ctx({ playerIds: ['a', 'b'], config: { type: 'penales', rounds: 1 } });
+    const s = penales.init(c);
+    penales.onHost(s, 'start-round', null, c);
+    const m = s.matches[0];
+    const [x, y] = [m.a, m.b];
+    // los dos meten
+    penales.onPlayer(s, x, 'choose', { kick: 0, dive: 0 }, c);
+    expect(m.tandas.length).toBe(0); // espera al rival
+    penales.onPlayer(s, y, 'choose', { kick: 1, dive: 2 }, c);
+    expect(m.tandas.length).toBe(1);
+    expect(m.winner).toBeNull();
+    // x mete (patea 2, y se tira 0) y x ataja (y patea 1, x se tira 1)
+    penales.onPlayer(s, x, 'choose', { kick: 2, dive: 1 }, c);
+    penales.onPlayer(s, y, 'choose', { kick: 1, dive: 0 }, c);
+    expect(m.winner).toBe(x);
+    expect(s.phase).toBe('done');
+    const r = placeRanking(penales.ranking(s, c), [10, 8]);
+    expect(r[0].playerId).toBe(x);
+    expect(r[0].points).toBe(10);
+    // la vista del rival no revela la elección pendiente
+  });
+
+  it('timeout patea al azar por el que no eligió', async () => {
+    const { penales } = await import('../src/worker/games/penales');
+    const c = ctx({ playerIds: ['a', 'b', 'c'], config: { type: 'penales', rounds: 1 } });
+    const s = penales.init(c);
+    penales.onHost(s, 'start-round', null, c);
+    expect(s.matches.length).toBe(1);
+    const m = s.matches[0];
+    penales.onPlayer(s, m.a, 'choose', { kick: 0, dive: 0 }, c);
+    const view = penales.playerView(s, m.b, c) as any;
+    expect(JSON.stringify(view)).not.toContain('"kick":0');
+    penales.onHost(s, 'timeout', null, { ...c, now: c.now + 30_000 });
+    expect(m.tandas.length).toBe(1);
+  });
+});
