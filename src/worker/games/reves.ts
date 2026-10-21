@@ -1,4 +1,4 @@
-import { FAMOUS } from '../../shared/data';
+import { FAMOUS, type Famous } from '../../shared/data';
 import { matchesName } from '../../shared/text';
 import { GameError, shuffle, type GameModule } from './types';
 
@@ -15,6 +15,7 @@ interface Guess {
 
 export interface RevesState {
   names: string[];
+  categories: string[]; // pista que se muestra mientras se adivina
   rounds: number;
   round: number;
   phase: 'intro' | 'listen' | 'reveal';
@@ -44,13 +45,20 @@ export function currentFamous(s: RevesState): string | null {
 
 export const reves: GameModule<RevesState> = {
   init(ctx) {
-    const pool = [...new Set([...ctx.customFamous, ...shuffle(FAMOUS, ctx.rand)])];
-    // Los propios del admin van primero (mezclados entre sí), después los del banco.
-    const custom = shuffle(ctx.customFamous, ctx.rand);
-    const names = [...custom, ...pool.filter((n) => !custom.includes(n))].slice(0, ctx.config.rounds);
+    // 1) los que cargó el admin, 2) algunos conocidos (hasta la mitad de las rondas), 3) famosos al azar.
+    const custom: Famous[] = shuffle(ctx.customFamous, ctx.rand).map((name) => ({ name, category: 'Del grupo' as const }));
+    const conocidos = shuffle(FAMOUS.filter((f) => f.category === 'Conocidos'), ctx.rand);
+    const rest = shuffle(FAMOUS.filter((f) => f.category !== 'Conocidos'), ctx.rand);
+    const total = ctx.config.rounds;
+    const picked: Famous[] = custom.slice(0, total);
+    const maxConocidos = Math.ceil(total / 2);
+    for (const f of conocidos) if (picked.length < total && picked.filter((p) => p.category === 'Conocidos').length < maxConocidos) picked.push(f);
+    for (const f of [...rest, ...conocidos]) if (picked.length < total && !picked.some((p) => p.name === f.name)) picked.push(f);
+    const order = shuffle(picked, ctx.rand);
     return {
-      names: shuffle(names, ctx.rand),
-      rounds: names.length,
+      names: order.map((f) => f.name),
+      categories: order.map((f) => f.category),
+      rounds: order.length,
       round: -1,
       phase: 'intro',
       startedAt: 0,
@@ -70,6 +78,7 @@ export const reves: GameModule<RevesState> = {
       rounds: s.rounds,
       deadline: s.deadline,
       answer: reveal ? s.names[s.round] : null,
+      category: s.round >= 0 ? s.categories?.[s.round] ?? null : null,
       answered: ctx.playerIds.filter((pid) => s.guesses[pid]),
       guesses: reveal
         ? ctx.playerIds.map((pid) => ({ playerId: pid, text: s.guesses[pid]?.text ?? null, correct: !!s.guesses[pid]?.correct, points: s.guesses[pid]?.points ?? 0 }))
@@ -91,6 +100,7 @@ export const reves: GameModule<RevesState> = {
       correct: reveal ? !!g?.correct : null,
       gained: reveal ? g?.points ?? 0 : null,
       answer: reveal ? s.names[s.round] : null,
+      category: s.round >= 0 ? s.categories?.[s.round] ?? null : null,
       myPoints: s.points[pid] ?? 0
     };
   },

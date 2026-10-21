@@ -110,6 +110,11 @@ describe('nombres al revés', () => {
     expect(matchesName('Messi', 'Lionel Messi')).toBe(true);
     expect(matchesName('Cavani', 'Luis Suárez')).toBe(false);
     expect(matchesName('', 'Shakira')).toBe(false);
+    expect(matchesName('vampiro lacteo', 'El Vampiro Lácteo')).toBe(true);
+    expect(matchesName('martinez caballero', 'Cristian Andrés Martínez Caballero')).toBe(true);
+    expect(matchesName('cristian caballero', 'Cristian Andrés Martínez Caballero')).toBe(true);
+    expect(matchesName('cristian perez', 'Cristian Andrés Martínez Caballero')).toBe(false);
+    expect(matchesName('monroy', 'Alexis Monrroy')).toBe(true);
   });
 
   it('acierto + velocidad', () => {
@@ -127,6 +132,26 @@ describe('nombres al revés', () => {
     expect(s.points.b).toBe(8);
     expect(s.points.a).toBe(7);
     expect(s.points.c ?? 0).toBe(0);
+  });
+});
+
+describe('lista de famosos', () => {
+  it('tiene conocidos y saca los que se pidieron', async () => {
+    const { FAMOUS } = await import('../src/shared/data');
+    const names = FAMOUS.map((f) => f.name);
+    for (const n of ['Juanes', 'Ricardo Arjona', 'Luciano Pereyra', 'Gustavo Cerati', 'Natalia Oreiro']) expect(names).not.toContain(n);
+    const conocidos = FAMOUS.filter((f) => f.category === 'Conocidos').map((f) => f.name);
+    expect(conocidos).toContain('Fabio Lima');
+    expect(conocidos).toContain('El Vampiro Lácteo');
+    expect(conocidos.length).toBe(5);
+  });
+  it('cada partida trae conocidos (hasta la mitad) y la pista de categoría', () => {
+    const c = ctx({ config: { type: 'reves', rounds: 8 } });
+    const s = reves.init(c);
+    expect(s.names.length).toBe(8);
+    expect(s.categories.filter((x) => x === 'Conocidos').length).toBe(4);
+    reves.onHost(s, 'start-round', null, c);
+    expect((reves.playerView(s, 'a', c) as any).category).toBe(s.categories[0]);
   });
 });
 

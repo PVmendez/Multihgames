@@ -11,6 +11,7 @@ interface HostView {
   rounds: number;
   deadline: number;
   answer: string | null;
+  category: string | null;
   answered: string[];
   guesses: { playerId: string; text: string | null; correct: boolean; points: number }[];
   points: Record<string, number>;
@@ -26,6 +27,7 @@ interface PlayView {
   correct: boolean | null;
   gained: number | null;
   answer: string | null;
+  category: string | null;
   myPoints: number;
 }
 
@@ -101,6 +103,11 @@ export function RevesHost({ game, room, players, send }: HostProps<HostView>) {
             <h2 className="display" style={{ fontSize: 'clamp(60px, 9vw, 120px)' }}>
               ¿Quién es?
             </h2>
+            {g.category && (
+              <div className="paper" style={{ transform: 'rotate(-2deg)', padding: '8px 18px', fontSize: 26 }}>
+                Pista: <b>{g.category}</b>
+              </div>
+            )}
             {loadErr ? (
               <p className="pink big">{loadErr}</p>
             ) : (
@@ -261,6 +268,11 @@ function RevesRound({ g, send }: { g: PlayView; send: PlayProps<PlayView>['send'
         <div>
           <RoundLabel round={g.round} rounds={g.rounds} noun="Famoso" />
           <h1 className="display h2">¿Quién es?</h1>
+          {g.category && (
+            <span className="yellow" style={{ fontSize: 18 }}>
+              Pista: {g.category}
+            </span>
+          )}
         </div>
         <Countdown deadline={g.deadline} size={58} />
       </div>

@@ -41,9 +41,10 @@ export function matchesName(guess: string, answer: string): boolean {
   const parts = a.split(' ').filter((p) => p.length > 2);
   const last = parts[parts.length - 1];
   if (last && close(g, last)) return true;
-  // "Luis Suarez Diaz" contra "Luis Suárez": todos los pedazos de la respuesta presentes
-  const gp = g.split(' ');
-  return parts.length > 1 && parts.every((p) => gp.some((x) => close(x, p)));
+  // Nombres largos: alcanza con dos partes del nombre bien puestas ("Martinez Caballero", "Vampiro Lacteo")
+  const gp = g.split(' ').filter((x) => x.length > 2);
+  const hits = gp.filter((x) => parts.some((p) => close(x, p))).length;
+  return parts.length > 1 && hits >= Math.min(2, parts.length) && hits === gp.length;
 }
 
 /** Distancia en km entre dos puntos (haversine). */

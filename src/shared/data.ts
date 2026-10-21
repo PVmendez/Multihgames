@@ -1,13 +1,39 @@
 // Contenido incluido por defecto. El admin puede sumar el suyo al crear el evento.
 
-/** Famosos para "Nombres al revés". */
-export const FAMOUS: string[] = [
-  'Luis Suárez', 'Lionel Messi', 'Shakira', 'Natalia Oreiro', 'Jorge Drexler', 'Diego Forlán',
-  'Edinson Cavani', 'Federico Valverde', 'Rubén Rada', 'China Zorrilla', 'Bad Bunny', 'Taylor Swift',
-  'Ricardo Arjona', 'Mirtha Legrand', 'Marcelo Tinelli', 'Freddie Mercury', 'Michael Jackson',
-  'Cristiano Ronaldo', 'Lady Gaga', 'Brad Pitt', 'Diego Maradona', 'Juanes', 'Ricky Martin',
-  'Gustavo Cerati', 'Charly García', 'Pepe Mujica', 'Darwin Núñez', 'Luciano Pereyra', 'Karol G',
-  'Leonardo DiCaprio', 'Elon Musk', 'Bizarrap'
+export type FamousCategory = 'Uruguayos' | 'Argentinos' | 'Latinos' | 'Internacionales' | 'Conocidos' | 'Del grupo';
+
+export interface Famous {
+  name: string;
+  category: FamousCategory;
+}
+
+const famous = (category: FamousCategory, names: string[]): Famous[] => names.map((name) => ({ name, category }));
+
+/**
+ * "Conocidos": gente del grupo, no famosos. El repo es público, así que los nombres van
+ * codificados en base64 para que no aparezcan tal cual (no es seguridad, solo evita que se busquen).
+ * Para agregar uno: node -e "console.log(Buffer.from('Nombre Apellido').toString('base64'))"
+ */
+const CONOCIDOS_B64: string[] = ["WWhhbWlsYSBBbGF5b24=", "RWwgVmFtcGlybyBMw6FjdGVv", "RmFiaW8gTGltYQ==", "Q3Jpc3RpYW4gQW5kcsOpcyBNYXJ0w61uZXogQ2FiYWxsZXJv", "QWxleGlzIE1vbnJyb3k="];
+
+function fromB64(s: string): string {
+  const bin = atob(s);
+  return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+}
+
+/** Famosos para "Nombres al revés", por categoría (la categoría se muestra como pista). */
+export const FAMOUS: Famous[] = [
+  ...famous('Uruguayos', [
+    'Luis Suárez', 'Jorge Drexler', 'Diego Forlán', 'Edinson Cavani', 'Federico Valverde', 'Rubén Rada',
+    'China Zorrilla', 'Pepe Mujica', 'Darwin Núñez'
+  ]),
+  ...famous('Argentinos', ['Lionel Messi', 'Mirtha Legrand', 'Marcelo Tinelli', 'Diego Maradona', 'Charly García', 'Bizarrap']),
+  ...famous('Latinos', ['Shakira', 'Bad Bunny', 'Ricky Martin', 'Karol G']),
+  ...famous('Internacionales', [
+    'Taylor Swift', 'Freddie Mercury', 'Michael Jackson', 'Cristiano Ronaldo', 'Lady Gaga', 'Brad Pitt',
+    'Leonardo DiCaprio', 'Elon Musk'
+  ]),
+  ...famous('Conocidos', CONOCIDOS_B64.map(fromB64))
 ];
 
 /**
