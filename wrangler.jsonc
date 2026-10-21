@@ -13,5 +13,9 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "ai": { "binding": "AI" },
+  "vars": {
+    // Client Token de Mapillary: es público (el navegador lo usa para mostrar las imágenes).
+    "MAPILLARY_TOKEN": "MLY|28979141335076642|173f352ca9b8e70e83cf9dc059f1be19"
+  },
   "observability": { "enabled": true }
 }

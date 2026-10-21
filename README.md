@@ -55,19 +55,18 @@ En local, la voz de **Nombres al revés** necesita estar logueado en Cloudflare 
 
 - Build command: `npm run build`
 - Deploy command: `npx wrangler deploy`
-- Después del primer deploy: *Settings → Variables and Secrets → Add* → tipo **Secret**, nombre `MAPILLARY_TOKEN`, valor el Client Token de Mapillary (`MLY|…`, se saca en https://www.mapillary.com/dashboard/developers).
+- El token de Mapillary ya está en `wrangler.jsonc` (`vars.MAPILLARY_TOKEN`). Para usar otro, sacá un Client Token (`MLY|…`) en https://www.mapillary.com/dashboard/developers y reemplazalo ahí.
 
 **O desde la terminal:**
 
 ```bash
 npx wrangler login
 npm run deploy
-npx wrangler secret put MAPILLARY_TOKEN   # pegás el token
 ```
 
 Wrangler crea el Worker, el Durable Object y el binding de Workers AI. Queda andando en `https://multihgames.<tu-subdominio>.workers.dev`.
 
-Para desarrollo local, copiá `.dev.vars.example` a `.dev.vars` y poné el token ahí.
+
 
 ## Uso
 
