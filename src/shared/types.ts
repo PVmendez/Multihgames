@@ -11,7 +11,7 @@ export const GAME_INFO: Record<GameType, { name: string; mode: string; blurb: st
   reves: {
     name: 'Nombres al revés',
     mode: 'con el celu',
-    blurb: 'Escuchá un famoso al revés, grabate imitándolo, escuchalo al derecho y adiviná quién es.'
+    blurb: 'Por turnos: a cada uno le toca su famoso al revés. Grabate imitándolo, escuchalo al derecho y adiviná quién es.'
   },
   geo: {
     name: 'GeoGuesser Montevideo',
@@ -49,7 +49,7 @@ export interface PublicPlayer {
 
 export interface GameConfig {
   type: GameType;
-  rounds: number; // ajedrez: retos · revés: famosos · geo: lugares · palabra: minutos · penales: vueltas
+  rounds: number; // ajedrez: retos · revés: famosos por jugador · geo: lugares · palabra: minutos · penales: vueltas
 }
 
 export interface RankEntry {
@@ -128,4 +128,4 @@ export interface CreateRoomRequest {
 export const DEFAULT_SCALE = [10, 8, 6, 5, 4, 3, 2, 1];
 export const MAX_PLAYERS = 12;
 
-export const DEFAULT_ROUNDS: Record<GameType, number> = { chess: 3, reves: 8, geo: 5, palabra: 15, penales: 1 };
+export const DEFAULT_ROUNDS: Record<GameType, number> = { chess: 3, reves: 2, geo: 5, palabra: 15, penales: 1 };

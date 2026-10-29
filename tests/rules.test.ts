@@ -117,21 +117,37 @@ describe('nombres al revés', () => {
     expect(matchesName('ronaldo', 'Cristiano Ronaldo')).toBe(true);
   });
 
-  it('acierto + velocidad', () => {
+  it('por turnos: a cada uno su famoso, solo responde al que le toca, 3 intentos', () => {
     const c = ctx({ config: { type: 'reves', rounds: 2 }, customFamous: ['Natalia Oreiro'] });
     const s = reves.init(c);
-    expect(s.names).toContain('Natalia Oreiro');
+    // 3 jugadores × 2 = 6 turnos, cada jugador 2 veces, famosos distintos
+    expect(s.turns.length).toBe(6);
+    for (const pid of ['a', 'b', 'c']) expect(s.turns.filter((t) => t.playerId === pid).length).toBe(2);
+    expect(new Set(s.turns.map((t) => t.name)).size).toBe(6);
+    expect(s.turns.some((t) => t.name === 'Natalia Oreiro')).toBe(true);
+
     reves.onHost(s, 'start-round', null, c);
-    const answer = s.names[s.round];
-    // el famoso no viaja a los celulares mientras se juega
-    expect(JSON.stringify(reves.playerView(s, 'a', c))).not.toContain(answer);
-    reves.onPlayer(s, 'b', 'guess', { text: answer }, { ...c, now: c.now + 1000 });
-    reves.onPlayer(s, 'a', 'guess', { text: answer }, { ...c, now: c.now + 2000 });
-    reves.onPlayer(s, 'c', 'guess', { text: 'Pepe' }, { ...c, now: c.now + 3000 });
-    expect(s.phase).toBe('reveal'); // respondieron todos
-    expect(s.points.b).toBe(8);
-    expect(s.points.a).toBe(7);
-    expect(s.points.c ?? 0).toBe(0);
+    const t = s.turns[s.turn];
+    const other = ['a', 'b', 'c'].find((x) => x !== t.playerId)!;
+    // nadie recibe el nombre mientras se juega
+    for (const pid of ['a', 'b', 'c']) expect(JSON.stringify(reves.playerView(s, pid, c))).not.toContain(t.name);
+    expect((reves.playerView(s, t.playerId, c) as any).myTurn).toBe(true);
+    expect(() => reves.onPlayer(s, other, 'guess', { text: t.name }, c)).toThrow('No es tu turno');
+    // falla una vez, acierta en el segundo intento a los 20 s: 3 + 2
+    reves.onPlayer(s, t.playerId, 'guess', { text: 'Pepe Grillo' }, { ...c, now: c.now + 10_000 });
+    expect(s.phase).toBe('listen');
+    reves.onPlayer(s, t.playerId, 'guess', { text: t.name }, { ...c, now: c.now + 20_000 });
+    expect(s.phase).toBe('reveal');
+    expect(t.points).toBe(5);
+
+    // siguiente turno: 3 fallos cierran el turno
+    reves.onHost(s, 'start-round', null, c);
+    const t2 = s.turns[s.turn];
+    for (const x of ['uno', 'dos', 'tres']) reves.onPlayer(s, t2.playerId, 'guess', { text: x }, c);
+    expect(s.phase).toBe('reveal');
+    expect(t2.points).toBe(0);
+    const r = placeRanking(reves.ranking(s, c), [10, 8, 6]);
+    expect(r[0].playerId).toBe(t.playerId);
   });
 });
 
@@ -145,12 +161,12 @@ describe('lista de famosos', () => {
     expect(conocidos.every((n) => /^[\p{L} ]+$/u.test(n))).toBe(true); // se decodificaron bien
   });
   it('cada partida trae conocidos (hasta la mitad) y la pista de categoría', () => {
-    const c = ctx({ config: { type: 'reves', rounds: 8 } });
+    const c = ctx({ playerIds: ['a', 'b', 'c', 'd'], config: { type: 'reves', rounds: 2 } });
     const s = reves.init(c);
-    expect(s.names.length).toBe(8);
-    expect(s.categories.filter((x) => x === 'Conocidos').length).toBe(4);
+    expect(s.turns.length).toBe(8);
+    expect(s.turns.filter((t) => t.category === 'Conocidos').length).toBe(4);
     reves.onHost(s, 'start-round', null, c);
-    expect((reves.playerView(s, 'a', c) as any).category).toBe(s.categories[0]);
+    expect((reves.playerView(s, 'a', c) as any).category).toBe(s.turns[0].category);
   });
 });
 

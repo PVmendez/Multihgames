@@ -5,7 +5,7 @@ import { specialForName } from '../../shared/specials';
 import { DEFAULT_ROUNDS, GAME_INFO, type CreateRoomRequest, type GameType } from '../../shared/types';
 
 const ALL: GameType[] = ['chess', 'reves', 'geo', 'penales', 'palabra'];
-const ROUND_LABEL: Record<GameType, string> = { chess: 'retos', reves: 'famosos', geo: 'lugares', palabra: 'minutos', penales: 'vueltas' };
+const ROUND_LABEL: Record<GameType, string> = { chess: 'retos', reves: 'famosos c/u', geo: 'lugares', palabra: 'minutos', penales: 'vueltas' };
 
 export const pendingPin = {
   set: (code: string, pin: string) => sessionStorage.setItem(`mj:pin:${code}`, pin),
@@ -136,7 +136,7 @@ export function Create() {
                   <input
                     type="number"
                     min={1}
-                    max={g.type === 'palabra' ? 60 : g.type === 'penales' ? 2 : 15}
+                    max={g.type === 'palabra' ? 60 : g.type === 'penales' ? 2 : g.type === 'reves' ? 5 : 15}
                     value={g.rounds}
                     onChange={(e) => setGames((gs) => gs.map((x) => (x.type === g.type ? { ...x, rounds: Number(e.target.value) || 1 } : x)))}
                     className="chalk-input"

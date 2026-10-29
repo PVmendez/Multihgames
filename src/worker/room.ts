@@ -143,7 +143,7 @@ export class Room extends DurableObject<Env> {
     if (!/^\d{4,8}$/.test(pin)) return new Response('El PIN tiene que ser de 4 a 8 números', { status: 400 });
     const games = (Array.isArray(body.games) ? body.games : [])
       .filter((g) => VALID_GAMES.includes(g?.type))
-      .map((g) => ({ type: g.type, rounds: Math.max(1, Math.min(g.type === 'palabra' ? 60 : g.type === 'penales' ? 2 : 15, Math.round(Number(g.rounds) || 1))) }));
+      .map((g) => ({ type: g.type, rounds: Math.max(1, Math.min(g.type === 'palabra' ? 60 : g.type === 'penales' ? 2 : g.type === 'reves' ? 5 : 15, Math.round(Number(g.rounds) || 1))) }));
     if (!games.length) return new Response('Elegí al menos un juego', { status: 400 });
     const adminName = String(body.adminName ?? '').trim().slice(0, 24);
     this.data = {

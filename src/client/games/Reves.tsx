@@ -7,28 +7,37 @@ import { RoundLabel, useWhenTimeUp, type HostProps, type PlayProps } from './com
 interface HostView {
   type: 'reves';
   phase: 'intro' | 'listen' | 'reveal';
-  round: number;
-  rounds: number;
+  turn: number;
+  turns: number;
   deadline: number;
-  answer: string | null;
+  player: string | null; // a quién le toca
+  nextPlayer: string | null;
   category: string | null;
-  answered: string[];
-  guesses: { playerId: string; text: string | null; correct: boolean; points: number }[];
-  points: Record<string, number>;
+  tries: string[];
+  maxTries: number;
+  correct: boolean | null;
+  gained: number | null;
+  answer: string | null;
+  table: { playerId: string; points: number; correct: number; played: number }[];
 }
 
 interface PlayView {
   type: 'reves';
   phase: 'intro' | 'listen' | 'reveal';
-  round: number;
-  rounds: number;
+  turn: number;
+  turns: number;
   deadline: number;
-  myGuess: string | null;
+  myTurn: boolean;
+  player: string | null;
+  nextIsMe: boolean;
+  category: string | null;
+  tries: string[];
+  maxTries: number;
   correct: boolean | null;
   gained: number | null;
   answer: string | null;
-  category: string | null;
   myPoints: number;
+  myCorrect: number;
 }
 
 function Wave({ data, color = 'var(--chalk)' }: { data: number[] | null; color?: string }) {
@@ -76,7 +85,7 @@ export function RevesHost({ game, room, players, send }: HostProps<HostView>) {
       cancelled = true;
       stopRef.current();
     };
-  }, [g.phase, g.round, room.code]);
+  }, [g.phase, g.turn, room.code]);
 
   const playClip = (backwards: boolean) => {
     if (!clip) return;
@@ -85,22 +94,38 @@ export function RevesHost({ game, room, players, send }: HostProps<HostView>) {
     stopRef.current = play(backwards ? reversed(clip) : clip, () => setPlaying(false));
   };
 
-  const last = g.round + 1 >= g.rounds;
+  const last = g.turn + 1 >= g.turns;
+  const who = g.player ? players[g.player] : null;
+  const next = g.nextPlayer ? players[g.nextPlayer] : null;
+  const table = [...g.table].sort((a, b) => b.points - a.points);
   return (
     <div className="row" style={{ alignItems: 'stretch', gap: 'clamp(24px, 4vw, 56px)', flex: 1, flexWrap: 'wrap' }}>
       <div className="stack grow" style={{ minWidth: 300 }}>
-        <RoundLabel round={g.round} rounds={g.rounds} noun="famoso" />
+        <RoundLabel round={g.turn} rounds={g.turns} noun="turno" />
         {g.phase === 'intro' && (
           <div className="stack">
             <p className="big" style={{ margin: 0 }}>
-              Va a sonar el nombre de un famoso <b>al revés</b>. Cada uno lo imita y se graba con el celu; el celu lo da vuelta y, si lo imitaste bien, vas a escuchar el nombre al derecho.
+              Por turnos: a cada uno le toca <b>su propio famoso</b>. Suena su nombre <b>al revés</b>, el jugador lo imita y se graba con el celu, y el celu lo da vuelta: si lo imitó bien, va a escuchar el nombre al derecho.
             </p>
-            <p className="muted" style={{ margin: 0 }}>Acertar suma 5 puntos, y los tres más rápidos se llevan +3, +2 y +1.</p>
+            <p className="muted" style={{ margin: 0 }}>
+              Solo responde al que le toca, con 3 intentos. Al primero suma 5, al segundo 3 y al tercero 2, y si acierta rápido gana +2 o +1. ¡Los demás no soplen!
+            </p>
+          </div>
+        )}
+        {g.phase !== 'intro' && who && (
+          <div className="row" style={{ gap: 18, alignItems: 'flex-end' }}>
+            <Avatar avatar={g.phase === 'reveal' ? { ...who.avatar, expression: g.correct ? 'happy' : 'sad' } : who.avatar} size={90} body />
+            <div>
+              <div className="muted big">Le toca a</div>
+              <div className="display" style={{ fontSize: 'clamp(44px, 6vw, 72px)' }}>
+                {who.name}
+              </div>
+            </div>
           </div>
         )}
         {g.phase === 'listen' && (
           <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-            <h2 className="display" style={{ fontSize: 'clamp(60px, 9vw, 120px)' }}>
+            <h2 className="display" style={{ fontSize: 'clamp(54px, 8vw, 100px)' }}>
               ¿Quién es?
             </h2>
             {g.category && (
@@ -115,12 +140,19 @@ export function RevesHost({ game, room, players, send }: HostProps<HostView>) {
                 {!clip ? 'Preparando la voz…' : playing ? 'Sonando…' : 'Escuchar de nuevo'}
               </button>
             )}
-            <Countdown deadline={g.deadline} size={90} />
+            <div className="row" style={{ gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {Array.from({ length: g.maxTries }, (_, i) => (
+                <span key={i} className={g.tries[i] ? 'pink crossed' : 'muted'} style={{ fontSize: 24, opacity: 1 }}>
+                  {g.tries[i] ? `«${g.tries[i]}»` : `intento ${i + 1}`}
+                </span>
+              ))}
+            </div>
+            <Countdown deadline={g.deadline} size={80} />
           </div>
         )}
         {g.phase === 'reveal' && (
           <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-            <div className="muted big">Era…</div>
+            <div className={`big ${g.correct ? 'yellow' : 'pink'}`}>{g.correct ? `¡Lo sacó! +${g.gained}` : 'No lo sacó. Era…'}</div>
             <h2 className="display yellow" style={{ fontSize: 'clamp(54px, 8vw, 110px)' }}>
               {g.answer}
             </h2>
@@ -147,37 +179,31 @@ export function RevesHost({ game, room, players, send }: HostProps<HostView>) {
                 send({ t: 'game', action: 'start-round' });
               }}
             >
-              {g.round < 0 ? 'Primer famoso' : 'Siguiente famoso'}
+              {g.turn < 0 ? `Arranca ${next?.name ?? ''}` : `Turno de ${next?.name ?? 'el siguiente'}`}
             </button>
           ) : (
-            <span className="muted">Era el último: terminá el juego para pasar los puntos.</span>
+            <span className="muted">Era el último turno: terminá el juego para pasar los puntos.</span>
           )}
         </div>
       </div>
 
-      <div className="stack" style={{ width: 'min(100%, 380px)', gap: 4 }}>
-        <h2 className="display h3">{g.phase === 'reveal' ? 'Respuestas' : 'Respondieron'}</h2>
-        {room.players.map((p) => {
-          const gs = g.guesses.find((x) => x.playerId === p.id);
-          const done = g.answered.includes(p.id);
+      <div className="stack" style={{ width: 'min(100%, 360px)', gap: 4 }}>
+        <h2 className="display h3">Puntos</h2>
+        {table.map((r) => {
+          const p = players[r.playerId];
+          if (!p) return null;
           return (
-            <div key={p.id} className="score-row" style={{ minHeight: 56 }}>
-              <Avatar avatar={gs?.correct ? { ...p.avatar, expression: 'love' } : p.avatar} size={44} offline={!p.connected} />
+            <div key={r.playerId} className="score-row" style={{ minHeight: 56 }}>
+              <Avatar avatar={p.avatar} size={44} offline={!p.connected} />
               <span className="grow" style={{ fontSize: 22, fontWeight: 700 }}>
-                {players[p.id]?.name}
-                {g.phase === 'reveal' && (
-                  <div className={gs?.correct ? 'yellow' : 'muted'} style={{ fontSize: 18, fontWeight: 400 }}>
-                    {gs?.text ?? '(no respondió)'}
-                  </div>
-                )}
+                {p.name}
+                <div className="muted" style={{ fontSize: 16, fontWeight: 400 }}>
+                  {r.correct}/{r.played} aciertos
+                </div>
               </span>
-              {g.phase === 'reveal' ? (
-                <span className={gs?.correct ? 'yellow' : 'muted'} style={{ fontSize: 24, fontWeight: 700 }}>
-                  {gs?.correct ? `+${gs.points}` : '0'}
-                </span>
-              ) : (
-                g.phase === 'listen' && (done ? <ChalkCircle size={34} color="var(--yellow)">✓</ChalkCircle> : <span className="muted">…</span>)
-              )}
+              <span className="total" style={{ color: r.playerId === g.player && g.phase === 'listen' ? 'var(--yellow)' : undefined }}>
+                {r.points}
+              </span>
             </div>
           );
         })}
@@ -186,12 +212,12 @@ export function RevesHost({ game, room, players, send }: HostProps<HostView>) {
   );
 }
 
-export function RevesPlay({ game, send }: PlayProps<PlayView>) {
+export function RevesPlay({ game, players, send }: PlayProps<PlayView>) {
   const g = game;
-  return <RevesRound key={`${g.round}`} g={g} send={send} />;
+  return <RevesRound key={`${g.turn}`} g={g} send={send} players={players} />;
 }
 
-function RevesRound({ g, send }: { g: PlayView; send: PlayProps<PlayView>['send'] }) {
+function RevesRound({ g, send, players }: { g: PlayView; send: PlayProps<PlayView>['send']; players: PlayProps<PlayView>['players'] }) {
   const [rec, setRec] = useState<Recording | null>(null);
   const [clip, setClip] = useState<AudioBuffer | null>(null);
   const [wave, setWave] = useState<number[] | null>(null);
@@ -214,24 +240,46 @@ function RevesRound({ g, send }: { g: PlayView; send: PlayProps<PlayView>['send'
     return (
       <div className="stack center" style={{ marginTop: 40 }}>
         <h1 className="display h2">Nombres al revés</h1>
-        <p className="muted">Prestá atención a la pantalla grande. Acá vas a grabarte.</p>
+        <p className="muted">Se juega por turnos: cuando te toque, acá vas a grabarte y responder.</p>
       </div>
     );
   }
 
+  const who = g.player ? players[g.player] : null;
+
   if (g.phase === 'reveal') {
     return (
       <div className="stack center fade-in" style={{ marginTop: 20 }}>
-        <div className="muted">Era…</div>
+        <div className="muted">{g.myTurn ? 'Tu famoso era…' : `El de ${who?.name ?? ''} era…`}</div>
         <h1 className="display h1 yellow">{g.answer}</h1>
-        {g.myGuess ? (
-          <p className="big">
-            Pusiste «{g.myGuess}»: {g.correct ? <span className="yellow">¡bien! +{g.gained}</span> : <span className="pink">no era</span>}
-          </p>
-        ) : (
-          <p className="big pink">No respondiste</p>
+        {g.myTurn && <p className="big">{g.correct ? <span className="yellow">¡Lo sacaste! +{g.gained}</span> : <span className="pink">Esta vez no</span>}</p>}
+        {g.nextIsMe && <p className="big yellow">¡Ahora te toca a vos!</p>}
+        <p className="muted">
+          Llevás {g.myPoints} puntos ({g.myCorrect} aciertos).
+        </p>
+      </div>
+    );
+  }
+
+  if (!g.myTurn) {
+    return (
+      <div className="stack center fade-in" style={{ marginTop: 30, alignItems: 'center' }}>
+        <div className="muted big">Le toca a</div>
+        {who && <Avatar avatar={who.avatar} size={110} body />}
+        <h1 className="display h2">{who?.name}</h1>
+        {g.category && <span className="yellow">Pista: {g.category}</span>}
+        <p className="big">Escuchá la tele… ¡y no soples!</p>
+        {g.tries.length > 0 && (
+          <div className="stack" style={{ gap: 2 }}>
+            {g.tries.map((t, i) => (
+              <span key={i} className="pink crossed">
+                «{t}»
+              </span>
+            ))}
+          </div>
         )}
-        <p className="muted">Llevás {g.myPoints} puntos en este juego.</p>
+        {g.nextIsMe && <p className="yellow big">Después te toca a vos</p>}
+        <Countdown deadline={g.deadline} size={58} />
       </div>
     );
   }
@@ -261,12 +309,15 @@ function RevesRound({ g, send }: { g: PlayView; send: PlayProps<PlayView>['send'
     }
   };
 
-  const sent = !!g.myGuess;
+  const left = g.maxTries - g.tries.length;
+  const sent = left <= 0;
   return (
     <div className="stack fade-in">
       <div className="row between">
         <div>
-          <RoundLabel round={g.round} rounds={g.rounds} noun="Famoso" />
+          <span className="yellow" style={{ fontSize: 20, fontWeight: 700 }}>
+            ¡Te toca!
+          </span>
           <h1 className="display h2">¿Quién es?</h1>
           {g.category && (
             <span className="yellow" style={{ fontSize: 18 }}>
@@ -332,20 +383,31 @@ function RevesRound({ g, send }: { g: PlayView; send: PlayProps<PlayView>['send'
         </span>
       </div>
 
-      {sent ? (
-        <div className="center big">
-          Mandaste «{g.myGuess}». <span className="muted">Esperá a que se revele.</span>
+      {g.tries.length > 0 && (
+        <div className="row wrap" style={{ gap: 10 }}>
+          {g.tries.map((t, i) => (
+            <span key={i} className="pink crossed">
+              «{t}»
+            </span>
+          ))}
+          <span className="muted">no era</span>
         </div>
+      )}
+      {sent ? (
+        <div className="center big pink">Sin intentos. Esperá a que se revele.</div>
       ) : (
         <form
           className="stack"
           onSubmit={(e) => {
             e.preventDefault();
-            if (text.trim()) send({ t: 'game', action: 'guess', payload: { text } });
+            if (text.trim()) {
+              send({ t: 'game', action: 'guess', payload: { text } });
+              setText('');
+            }
           }}
         >
           <label htmlFor="resp" className="pink" style={{ fontSize: 20, fontWeight: 700 }}>
-            Tu respuesta
+            Tu respuesta <span className="muted" style={{ fontWeight: 400 }}>· {left} {left === 1 ? 'intento' : 'intentos'}</span>
           </label>
           <input id="resp" className="chalk-input" value={text} maxLength={60} autoComplete="off" onChange={(e) => setText(e.target.value)} placeholder="Nombre del famoso" />
           <button className="btn yellow" disabled={!text.trim()}>
